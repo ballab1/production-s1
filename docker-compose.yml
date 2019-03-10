@@ -2,21 +2,13 @@ version: '3.3'
 
 services:
     broker:
+        command: kafka broker
         container_name: broker
         depends_on:
             - zookeeper
         environment:
             DEBUG_TRACE: ${DEBUG_TRACE:-0}
             KAFKA_ADVERTISED_HOST_NAME: 255.255.255.255
-#            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://255.255.255.255:9092
-#            KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-#            KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
-#            KAFKA_USER_NAME: kafka
-#            KAFKA_USER_DIR: /usr/local/kafka
-#            KAFKA_USER_HOME: /usr/local/kafka
-#            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-#            ZOOKEEPER_HOST: zookeeper
-#            ZOOKEEPER_PORT: 2181
             KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://255.255.255.255:9092
             KAFKA_BROKER_ID: 3
             KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
@@ -31,52 +23,46 @@ services:
             - "ubuntu-s3:10.1.3.6"
             - "ubuntu-s4:10.1.3.10"
         hostname: broker
-        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka-broker/${KAFKA_VERSION:-2.0.0}:${CONTAINER_TAG:-latest}
+        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka/${KAFKA_VERSION:-2.1.0}:${CONTAINER_TAG:-9f98bcd0cb9cda7854f727f7a049b1dae8e6041985647e4a133997eb6ce799d3}
         logging:
             driver: json-file
             options:
-                max-size: "10m"
                 max-file: "3"
+                max-size: "10m"
         links:
            - zookeeper
         ports:
-            - 9092:9092
+            - "9092:9092"
         restart: unless-stopped
         volumes:
-            - ./kafka-broker/data:/usr/local/kafka/data
-            - ./kafka-broker/logs:/usr/local/kafka/logs
+            - /media/500GB/broker/data:/usr/local/kafka/data
+            - /media/500GB/broker/logs/:/usr/local/kafka/logs
 
     zookeeper:
+        command: kafka zookeeper
         container_name: zookeeper
         environment:
             DEBUG_TRACE: ${DEBUG_TRACE:-0}
-            ZOOKEEPER_USER_NAME: zookeeper
-            ZOOKEEPER_USER_DIR: /usr/local/zookeeper
-            ZOOKEEPER_HOME_DIR: /usr/local/zookeeper
-            ZOOKEEPER_CONF_DIR: /usr/local/zookeeper/conf
-            ZOOKEEPER_DATA_DIR: /usr/local/zookeeper/data
-            ZOOKEEPER_LOG_DIR: /usr/local/zookeeper/logs
             ZOOKEEPER_MY_ID: 3
             ZOOKEEPER_PORT: 2181
             ZOOKEEPER_TICK_TIME: 2000
             ZOOKEEPER_INIT_LIMIT: 10
             ZOOKEEPER_SYNC_LIMIT: 5
-#            ZOOKEEPER_SERVERS: server.1=ubuntu-s1:2888:3888 server.3=ubuntu-s3:2888:3888 server.4=ubuntu-s4:2888:3888
         extra_hosts:
             - "ubuntu-s1:10.1.3.11"
             - "ubuntu-s2:10.1.3.12"
             - "ubuntu-s3:10.1.3.6"
             - "ubuntu-s4:10.1.3.10"
         hostname: zookeeper
-        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka-zookeeper/${ZOOKEEPER_VERSION:-3.4.13}:${CONTAINER_TAG:-latest}
+        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka/${KAFKA_VERSION:-2.1.0}:${CONTAINER_TAG:-9f98bcd0cb9cda7854f727f7a049b1dae8e6041985647e4a133997eb6ce799d3}
         logging:
             driver: json-file
             options:
                 max-size: "10m"
                 max-file: "3"
         ports:
-            - 2181:2181
+            - "2181:2181"
         restart: unless-stopped
         volumes:
-            - ./kafka-zookeeper/data:/usr/local/zookeeper/data
-            - ./kafka-zookeeper/log:/usr/local/zookeeper/logs 
+            - /media/500GB/zookeeper/data:/usr/local/kafka/data
+            - /media/500GB/zookeeper/logs:/usr/local/kafka/logs 
