@@ -23,7 +23,7 @@ services:
             - "ubuntu-s3:10.1.3.6"
             - "ubuntu-s4:10.1.3.10"
         hostname: broker
-        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka/${KAFKA_VERSION:-2.1.0}:${CONTAINER_TAG:-9f98bcd0cb9cda7854f727f7a049b1dae8e6041985647e4a133997eb6ce799d3}
+        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka/${KAFKA_VERSION:-2.1.1}:${CONTAINER_TAG:-baf77b5cd76cfadf2dd1d2ccedd8262114c0f255a0dbe6fa92ad6cedcac57fe2}
         logging:
             driver: json-file
             options:
@@ -54,7 +54,7 @@ services:
             - "ubuntu-s3:10.1.3.6"
             - "ubuntu-s4:10.1.3.10"
         hostname: zookeeper
-        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka/${KAFKA_VERSION:-2.1.0}:${CONTAINER_TAG:-9f98bcd0cb9cda7854f727f7a049b1dae8e6041985647e4a133997eb6ce799d3}
+        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka/${KAFKA_VERSION:-2.1.1}:${CONTAINER_TAG:-baf77b5cd76cfadf2dd1d2ccedd8262114c0f255a0dbe6fa92ad6cedcac57fe2}
         logging:
             driver: json-file
             options:
