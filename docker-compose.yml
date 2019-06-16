@@ -2,7 +2,8 @@ version: '3.3'
 
 services:
     broker:
-        command: kafka broker
+#        command: kafka broker
+        command: confluent broker
         container_name: broker
         depends_on:
             - zookeeper
@@ -23,7 +24,8 @@ services:
             - "ubuntu-s3:10.1.3.6"
             - "ubuntu-s4:10.1.3.10"
         hostname: broker
-        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka/${KAFKA_VERSION:-2.2.0}:${CONTAINER_TAG:-a26912789865002192192ef07448a670f05ee02b25c8c075c6462ea0deb076e3}
+#        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka/${KAFKA_VERSION:-2.2.0}:${CONTAINER_TAG:-a26912789865002192192ef07448a670f05ee02b25c8c075c6462ea0deb076e3}
+        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/confluent/${CONFLUENT_VERSION:-5.2.1}:${CONTAINER_TAG:-latest}
         logging:
             driver: json-file
             options:
@@ -40,7 +42,8 @@ services:
             - ./kafka-broker/log:/var/log
 
     zookeeper:
-        command: kafka zookeeper
+#        command: kafka zookeeper
+        command: confluent zookeeper
         container_name: zookeeper
         environment:
             DEBUG_TRACE: ${DEBUG_TRACE:-0}
@@ -55,7 +58,8 @@ services:
             - "ubuntu-s3:10.1.3.6"
             - "ubuntu-s4:10.1.3.10"
         hostname: zookeeper
-        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka/${KAFKA_VERSION:-2.2.0}:${CONTAINER_TAG:-a26912789865002192192ef07448a670f05ee02b25c8c075c6462ea0deb076e3}
+#        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka/${KAFKA_VERSION:-2.2.0}:${CONTAINER_TAG:-a26912789865002192192ef07448a670f05ee02b25c8c075c6462ea0deb076e3}
+        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/confluent/${CONFLUENT_VERSION:-5.2.1}:${CONTAINER_TAG:-latest}
         logging:
             driver: json-file
             options:
