@@ -26,3 +26,24 @@ function appenv.loader()
         TOP=/opt
     fi
 }
+
+#----------------------------------------------------------------------------------------------
+function appenv.results()
+{
+    local val
+    if [ ${#opts[*]} -gt 0 ]; then
+        local -i i=0
+        for val in "${!opts[@]}"; do
+            [ $(( i++ )) -gt 0 ] && echo -n ' '
+            printf '['\''%s'\'']='\''%s'\' "$val" "${opts[$val]}"
+        done
+        echo
+    else
+        echo "['dummy']=0"
+    fi
+    if [ $# -gt 0 ]; then
+        for val in "$@"; do
+            echo "$val"
+        done
+    fi
+}

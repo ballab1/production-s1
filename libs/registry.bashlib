@@ -1,15 +1,17 @@
 #!/bin/bash
 
-#"No HTTP secret provided - generated random secret. This may cause problems with uploads
-#"redis not configured"
-#"using inmemory blob descriptor cache"
+#----------------------------------------------------------------------------------------------
+#
+#  general 'registry' scripts
+#
+#----------------------------------------------------------------------------------------------
 
+export MAX_IMAGES_TO_KEEP=10
 export http_code
 
 #----------------------------------------------------------------------------------------------
 function registry.catalog()
 {
-    local -a entries=()
     registry.GET --silent "$(registry.URL)/_catalog" | jq -r '.repositories| sort[]? ' || echo "Failed to get $(registry.URL)/_catalog" >&2
 }
 export -f registry.catalog
@@ -31,6 +33,7 @@ function registry.createTime()
         fi
     fi
 
+    # show error info to stderr
     {
     echo -en '    \e[93m'
     echo "unable to parse time from manifest returned for $name:${tags[0]}"
@@ -50,41 +53,6 @@ function registry.createTime()
 export -f registry.createTime
 
 #----------------------------------------------------------------------------------------------
-function registry.curateRepository()
-{
-    local name=${1:?}
-
-    [ $(awk -F '/' '{print NF}' <<< "$name") -gt 1 ] || trap.die 'top level repository cannot be curated'
-
-    local -a catalog
-    mapfile -t catalog < <(registry.catalog | grep "$name" | sort)
-    [ "${#catalog[*]}" -gt 0 ] || trap.die 'invalid repository passed to registry.curateRepository'
-
-    # remove latest to keep all working images
-    unset 'catalog[${#catalog[*]}-1]'
-
-    [ "${#catalog[*]}" -gt 0 ] || return 0
-
-    for name in "${#catalog[@]}"; do
-        local digests="$(registry.digests "$name")"
-        [ "$digests" ] || continue
-
-        if [ "$(jq '.|length' <<< "$digests")" -gt 1 ]; then
-            local json createTime digest
-            local -a tags
-
-            # remove all but last image
-            for ((i=0; i < $(jq '.|length -1' <<< "$digests"); i++)); do
-                json=$(jq ".[$i]" <<< "$digests")
-                digest=$(jq -r '.digest' <<< "$json")
-                registry.deleteImage "$name" "$digest"
-            done
-        fi
-    done
-}
-export -f registry.curateRepository
-
-#----------------------------------------------------------------------------------------------
 function registry.DELETE()
 {
     registry.io --request DELETE "$@" || return 1
@@ -99,41 +67,9 @@ function registry.deleteImage()
 
     echo -n "deleting ${name} - $digest  "
     registry.DELETE --silent --show-error --write-out '%{http_code}\n' "$(registry.URL)/${name}/manifests/$digest" || echo "Failed to delete $name:$digest"
+    echo
 }
 export -f registry.deleteImage
-
-#----------------------------------------------------------------------------------------------
-function registry.deleteImages()
-{
-    local -ra ids=( "$@" )
-
-    [ "${#ids[*]}" -gt 0 ] || return 0
-
-    local id name tag digest
-    local -A tags
-    for id in "${ids[@]}"; do
-        if [[ "$id" = *:* ]]; then
-            name="${id%:*}"
-            tag="${id##*:}"
-            [ "${name:-}" ] && [ "${tag:-}" ] || trap.die "Invalid $id specified"
-
-            if [ "${tag:0:7}" = 'sha256:' ]; then
-                registry.deleteImage "$name" "$tag"
-            else
-                digest="$(registry.digest "$name" "$tag")"
-                [ -z "$digest" ] || registry.deleteImage "$name" "$digest"
-            fi
-
-        else
-            eval tags=( $(registry.tags "$id") )
-            [ "${#tags[*]}" -gt 0 ] || continue
-            for digest in $(printf '%s\n' "${tags[@]}" | sort -u); do
-                registry.deleteImage "$id" "$digest"
-            done
-        fi
-    done
-}
-export -f registry.deleteImages
 
 #----------------------------------------------------------------------------------------------
 function registry.digest()
@@ -183,7 +119,6 @@ function registry.digests()
         [ "${times[$createTime]:-}" ] || times[$createTime]="$digest"
     done
 
-    echo -n '['
     local -i x=0
     for createTime in $(printf '%s\n' "${!times[@]}" | sort); do
         (( x++ )) && echo -n ','
@@ -206,7 +141,6 @@ function registry.digests()
         done
         echo -n '"'"${tag}"'"]}'
     done
-    echo -n ']'
 }
 export -f registry.digests
 
@@ -220,20 +154,27 @@ export -f registry.GET
 #----------------------------------------------------------------------------------------------
 function registry.io()
 {
+    local -a args
+    local headers response url
+    local -i status=0
+    local -A links
     local -ra credentials=( $(custom.credentials registry) )
-    local response=$(curl "${credentials[@]}" "$@")
 
-    # strip http_code
-    if grep '\-\-write-out' <<<"$*" &>/dev/null ;then
-        http_code="${response##*\}}"
-        response="${response%\}*}"'}'
-    fi
+    headers=$(mktemp)
+    args=( "${credentials[@]}" '--silent' '--dump-header' "$headers" "$@" )
+    response=$(curl "${args[@]}") && status=$? || status=$?
 
-    local -r pattern='\{\n*[[:space:]]*"errors"[[:space:]]*:[[:space:]]*\['
-    if [[ ! $response =~ $pattern ]]; then
-        echo "$response"
-        return 0
+    if [ "$status" -eq 0 ]; then
+        # Status: 200 OK
+        http_code=$(head -1 "$headers" | sed -Ee 's|^\S+\s+(.+)\r?$|\1|')
+        if [ "${http_code:0:1}" -gt 3 ]; then
+            status=-1
+        else
+            echo -n "$response"
+        fi
     fi
+    rm "$headers"
+    [ "$status" -ne 0 ] || return 0
 
     # an error occurred
     local -r errors="$(echo "$response" | jq '.errors[]?')"
@@ -283,31 +224,6 @@ function registry.POST()
 export -f registry.POST
 
 #----------------------------------------------------------------------------------------------
-function registry.printTags()
-{
-    local digests=${1:?}
-    local space=${2:-}
-
-    local json createTime digest
-    local -a tags
-
-    for ((i=0; i < $(jq '.|length' <<< "$digests"); i++)); do
-        json=$(jq ".[$i]" <<< "$digests")
-        digest=$(jq -r '.digest' <<< "$json" )
-        createTime=$(jq -r '.createTime' <<< "$json")
-        mapfile -t tags < <(jq -r '.tags[]' <<< "$json")
-
-        echo -e '\e[97m'${space:-}${digest}'\e[0m'
-        echo "${space:-}"'    created at : '"${createTime:-}"
-        echo "${space:-}"'    tags       : '"${tags[0]:-}"
-        if [ "${#tags[*]}" -gt 1 ]; then
-            printf "${space:-}"'                 %s\n' "${tags[@]:1}"
-        fi
-    done
-}
-export -f registry.printTags
-
-#----------------------------------------------------------------------------------------------
 function registry.propFile()
 {
     echo "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/properties/$(basename "${BASH_SOURCE[0]%.*}").properties"
@@ -325,37 +241,42 @@ export -f registry.propertiesFile
 #----------------------------------------------------------------------------------------------
 function registry.push()
 {
+    local -ri isRetainedImage="${1:?}"
+    shift
     local -ra images=( "$@" )
     [ ${#images[*]} -eq 0 ] && return 1
 
+    local imageList=$(docker images --format '{{.Repository}}:{{.Tag}}')
+
     local -a allImages=()
     for image in "${images[@]}"; do
+        grep -q "$image" <<< "$imageList" || continue
         allImages+=( "$image" )
+        [ "${isRetainedImage:-0}" -gt 0 ] || continue
         local fp="$(docker inspect "$image" | jq -r '.[].Config.Labels."container.fingerprint"?')"
         if [ "${fp:-}" ]; then
             allImages+=( "${image%:*}:${fp}" )
-            docker tag "$image" "${image%:*}:${fp}"  > /dev/null 2>&1 || : # ignore any errors
+            docker tag "$image" "${image%:*}:${fp}"  > /dev/null 2>&1 ||: # ignore errors
         fi
     done
+    [ "${#allImages[*]}" -gt 0 ] || trap.die 'no valid images found'
     mapfile -t allImages < <(printf '%s\n' "${allImages[@]}" | uniq)
 
     local attempt
     for image in "${allImages[@]}"; do
+        local -i wasPushed=0
         for attempt in {0..2}; do
-            echo -e "    \e[94mPushing ${image}\e[0m"
-            docker push "$image" && break
-            [ $attempt -eq 2 ] && trap.die "Failed to push $image"
+            term.log "    Pushing ${image}"'\n' 'lt_blue'
+            docker push "$image" && wasPushed=1 && break
             echo 'retrying...'
         done
+        [ $wasPushed -eq 0 ] && trap.die "Failed to push $image"
     done
 
     for image in "${allImages[@]}"; do
         local -i wasTagged=0
         for inp in "${images[@]}"; do
-            if [ "$inp" = "$image" ]; then
-                wasTagged=1
-                break
-            fi
+            [ "$inp" = "$image" ] && wasTagged=1 && break
         done
         [ "$wasTagged" -eq 1 ] || docker rmi "$image"
     done
@@ -363,140 +284,11 @@ function registry.push()
 export -f registry.push
 
 #----------------------------------------------------------------------------------------------
-function registry.pushImage()
-{
-    local -i maxImages=${1:?}
-    local image1=${2:?}
-    local image2=${3:-}
-
-    local name="${image1%:*}"
-    name="${name//$(registry.SERVER)}"
-    local digests="$(registry.digests "$name")"
-
-    local -ir imageCount=$(jq '.|length' <<< "$digests")
-    if [ $imageCount -ge $maxImages ]; then
-        local -ir delta=$(( imageCount - maxImages + 1 ))
-        [ $delta -le 1 ] || echo -e "    \e[93mrepo ${name} contains ${delta} images over recommended limit\e[0m"
-        local -a oldImages
-        mapfile -t oldImages < <(jq -r "[.[]|select((.tags|length) == 1)]|sort_by(.createTime|fromdate)|.[0:${delta}]|.[].digest" <<< "$digests")
-        if [ "${#oldImages[*]}" -gt 0 ]; then
-            for digest in "${oldImages[@]}"; do
-                registry.deleteImage "$name" "$digest"
-            done
-        fi
-    fi
-
-    registry.push "$image1" "$image2"
-}
-export -f registry.pushImage
-
-#----------------------------------------------------------------------------------------------
 function registry.PUT()
 {
     registry.io --request PUST "$@" || return 1
 }
 export -f registry.PUT
-
-#----------------------------------------------------------------------------------------------
-function registry.removeTag()
-{
-    local image=${1:?}
-    image=${image#$(registry.SERVER)}
-
-    local name="${image%:*}"
-    local xtag="${image##*:}"
-
-    local digests="$(registry.digests "$name")"
-    local -a tags
-    mapfile -t tags < <(jq -r '.[]|select(.tags|contains(["master"]))|.tags[]' <<< "${digests}" )
-    [ "${#tags[*]}" -gt 0 ] || trap.die "repository: ${name} - does not exist"
-
-    local -i pulledImageExists=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -cH "$(registry.SERVER)$image" | awk -F ':' '{print $2}' ||:)
-    [ "$pulledImageExists" -gt 0 ] || docker pull "$(registry.SERVER)$image"
-    registry.deleteImages "$image"
-
-    if [ "${#tags[*]}" -gt 1 ]; then
-        for tag in "${tags[@]}"; do
-            [ "$tag" != "$xtag" ] || continue
-            echo "pushing $(registry.SERVER)${name}:$tag"
-            docker tag "$(registry.SERVER)$image" "$(registry.SERVER)${name}:$tag"
-            docker push "$(registry.SERVER)${name}:$tag"
-            docker rmi "$(registry.SERVER)${name}:$tag"
-        done
-        [ "$pulledImageExists" -gt 0 ] || echo docker rmi "$(registry.SERVER)$image"
-    fi
-}
-export -f registry.removeTag
-
-#----------------------------------------------------------------------------------------------
-function registry.rename()
-{
-    local src=${1:?}
-    local dst=${2:?}
-
-    # strip name of server
-    src=${src#$(registry.SERVER)}
-    dst=${dst#$(registry.SERVER)}
-
-    local srcName="${src%:*}"
-    local srcTag="${src##*:}"
-    [ "${srcName:-}" ] && [ "${srcTag:-}" ] || trap.die "Invalid $src specified"
-
-    local dstName="${dst%:*}"
-    local dstTag="${dst##*:}"
-
-    [ "${dstTag:-}" ] || dstTag="$srcTag"
-    [ "${dstName:-}" ] && [ "$dstName" != "$dstTag" ] || $dstName="$srcName"
-    [ "$srcName" != "$dstName" ] || [ "$srcTag" != "$dstTag" ] || trap.die "$src & $dst specify same image"
-
-    local exists=$(docker image ls --quiet "$(registry.SERVER)$src")
-    [ "${exists:-}" ] || docker pull "$(registry.SERVER)$src"
-    docker tag "$(registry.SERVER)$src" "$(registry.SERVER)${dstName}:$dstTag"
-    registry.push "$(registry.SERVER)${dstName}:$dstTag"
-    [ "${exists:-}" ] || docker rmi "$(registry.SERVER)$src"
-    registry.deleteImage "$(registry.SERVER)$src"
-}
-export -f registry.rename
-
-#----------------------------------------------------------------------------------------------
-function registry.reportCatalog()
-{
-    local output_file="${1:?}"
-    shift
-
-    if [ "${output_file:-}" ]; then
-        registry.reportCatalogAsJson "$@" > "$output_file"
-    else
-        registry.reportCatalogAsJson "$@"
-    fi
-}
-export -f registry.reportCatalog
-
-#----------------------------------------------------------------------------------------------
-function registry.reportCatalogAsJson()
-{
-    local -a catalog=( "$@" )
-    [ $# -eq 0 ] && mapfile -t catalog < <(registry.catalog)
-
-    local -i index=0
-    echo -n '['
-    for entry in "${catalog[@]}"; do
-        (( index++ )) && echo -n ','
-
-        local digests="$(registry.digests "$entry")"
-        printf '{"id":"%05d","repository":"%s","digests":' "$index" "$entry"
-        [ -z "$digests" ] || echo -n "${digests}}"
-    done
-    echo -n ']'
-}
-export -f registry.reportCatalogAsJson
-
-#----------------------------------------------------------------------------------------------
-function registry.secretsFile()
-{
-    echo "${_REGISTRY_SECRETS_FILE:=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/properties/secret.properties}"
-}
-export -f registry.secretsFile
 
 #----------------------------------------------------------------------------------------------
 function registry.SERVER()
