@@ -6,7 +6,7 @@
 #
 #############################################################################
 
-declare -r config_dir="${CONFIG_DIR:?}"
+declare -r config_dir="${CONFIG_DIR:?}/kafka"
 declare -r workspace_dir="${WORKSPACE_DIR:?}/kafka-broker"
 
 
@@ -25,7 +25,7 @@ if [ ! -f "$isIinitialized" ]; then
         [ -e "$target" ] && continue
         cp "$f" "$target"
         chmod 755 "$target"
-    done < <(find "${config_dir}/kafka" -mindepth 1 -maxdepth 1 -type f ! -name '.*')
+    done < <(find "${config_dir}" -mindepth 1 -maxdepth 1 -type f ! -name '.*')
 fi
 
 # perform common
