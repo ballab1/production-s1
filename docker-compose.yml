@@ -9,6 +9,7 @@ services:
             - zookeeper
         environment:
             DEBUG_TRACE: ${DEBUG_TRACE:-0}
+            JMX_PORT: 1099
             KAFKA_ADVERTISED_HOST_NAME: ${HOST_IP:?}
             KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${HOST_IP:?}:9092
             KAFKA_BROKER_ID: ${KAFKA_ID:?}
@@ -25,7 +26,7 @@ services:
             - "ubuntu-s4:10.1.3.10"
         hostname: broker
 #        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka/${KAFKA_VERSION:-2.2.0}:${CONTAINER_TAG:-a26912789865002192192ef07448a670f05ee02b25c8c075c6462ea0deb076e3}
-        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/confluent/${CONFLUENT_VERSION:-5.3.1}:${CONTAINER_TAG:-ec1587f3fdf9ce40a39af83b2762c9e73799d83cbc1c768cce0d66d3881710f4}
+        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/confluent/${CONFLUENT_VERSION:-5.3.1}:${CONTAINER_TAG:-e86fc1706caabaa55020062b1e73286188ba3a6d7f0d2f4b3c3530001002717d}
         logging:
             driver: json-file
             options:
@@ -34,6 +35,7 @@ services:
         links:
            - zookeeper
         ports:
+            - "1099:1099"
             - "9092:9092"
         restart: unless-stopped
         volumes:
@@ -47,6 +49,7 @@ services:
         container_name: zookeeper
         environment:
             DEBUG_TRACE: ${DEBUG_TRACE:-0}
+            JMX_PORT: 1299
             ZOOKEEPER_MY_ID: ${KAFKA_ID:?}
             ZOOKEEPER_PORT: 2181
             ZOOKEEPER_TICK_TIME: 2000
@@ -59,13 +62,14 @@ services:
             - "ubuntu-s4:10.1.3.10"
         hostname: zookeeper
 #        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/kafka/${KAFKA_VERSION:-2.2.0}:${CONTAINER_TAG:-a26912789865002192192ef07448a670f05ee02b25c8c075c6462ea0deb076e3}
-        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/confluent/${CONFLUENT_VERSION:-5.3.1}:${CONTAINER_TAG:-ec1587f3fdf9ce40a39af83b2762c9e73799d83cbc1c768cce0d66d3881710f4}
+        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/confluent/${CONFLUENT_VERSION:-5.3.1}:${CONTAINER_TAG:-e86fc1706caabaa55020062b1e73286188ba3a6d7f0d2f4b3c3530001002717d}
         logging:
             driver: json-file
             options:
                 max-size: "10m"
                 max-file: "3"
         ports:
+            - "1299:1299"
             - "2181:2181"
         restart: unless-stopped
         volumes:
