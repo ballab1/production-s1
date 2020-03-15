@@ -1,4 +1,4 @@
-version: '3.3'
+version: '3.5'
 
 services:
     broker:
@@ -6,25 +6,36 @@ services:
         container_name: broker
         depends_on:
             - zookeeper
+        dns: 10.1.3.1
+        dns_search:
+            - ubuntu.home
+            - home
         environment:
             DEBUG_TRACE: ${DEBUG_TRACE:-0}
-            JMX_PORT: 1099
             KAFKA_ADVERTISED_HOST_NAME: ${HOST_IP:?}
             KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${HOST_IP:?}:9092
+#            KAFKA_ADVERTISED_LISTENERS: SASL_PLAINTEXT://${HOST_IP:?}:9092
+            KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+            KAFKA_BOOTSTRAP_SERVERS: $KAFKA_BOOTSTRAP_SERVERS
             KAFKA_BROKER_ID: ${KAFKA_ID:?}
+            KAFKA_COMPRESSION_TYPE: gzip
+            KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'true'
             KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+            KAFKA_HEAP_OPTS: "-Xmx6G -Xms6G"
+            KAFKA_JMX_OPTS: "-Djava.rmi.server.hostname=${HOST_IP:?} -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.rmi.port=9091 -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dzookeeper.sasl.client=ZkClient"
+            KAFKA_JMX_PORT: 9091
             KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#            KAFKA_LISTENERS: SASL_PLAINTEXT://0.0.0.0:9092
             KAFKA_NUM_PARTITIONS: 1
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+            KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+            KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+            KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
             KAFKA_ZOOKEEPER_CONNECT: ${ZOOKEEPER_HOSTS:?}
             ZOOKEEPER_TIMEOUT: 6000
-        extra_hosts:
-            - "ubuntu-s1:10.1.3.11"
-            - "ubuntu-s2:10.1.3.12"
-            - "ubuntu-s3:10.1.3.6"
-            - "ubuntu-s4:10.1.3.10"
-        hostname: broker
-        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/confluent/${CONFLUENT_VERSION:-5.3.1}:${CONTAINER_TAG:-v3.9.1}
+        hostname: broker.s8.home
+        image: ${DOCKER_REGISTRY:-ubuntu-s2.home:5000/}${CONTAINER_OS:-alpine}/confluent/${CONFLUENT_VERSION:-5.4.1}:${CONTAINER_TAG:-3743c749e73ca65c6f2d94597f5954a592e489b025a49331ea7853dd1671ce57}
         logging:
             driver: json-file
             options:
@@ -32,43 +43,53 @@ services:
                 max-size: "10m"
         links:
            - zookeeper
+        networks:
+            - kafka-net
         ports:
-            - "1099:1099"
+            - "9091:9091"
             - "9092:9092"
         restart: unless-stopped
         volumes:
-            - /media/500GB/broker/data:/usr/local/kafka/data
-            - /media/500GB/broker/logs/:/usr/local/kafka/logs
-            - ./kafka-broker/log:/var/log
+            - ./broker/data:/usr/local/confluent/data
+            - ./broker/logs:/usr/local/confluent/logs
+            - ./broker/log:/var/log
+
 
     zookeeper:
         command: confluent zookeeper
         container_name: zookeeper
+        dns: 10.1.3.1
+        dns_search:
+            - ubuntu.home
+            - home
         environment:
             DEBUG_TRACE: ${DEBUG_TRACE:-0}
-            JMX_PORT: 1299
-            ZOOKEEPER_MY_ID: ${KAFKA_ID:?}
-            ZOOKEEPER_PORT: 2181
-            ZOOKEEPER_TICK_TIME: 2000
-            ZOOKEEPER_INIT_LIMIT: 10
-            ZOOKEEPER_SYNC_LIMIT: 5
-        extra_hosts:
-            - "ubuntu-s1:10.1.3.11"
-            - "ubuntu-s2:10.1.3.12"
-            - "ubuntu-s3:10.1.3.6"
-            - "ubuntu-s4:10.1.3.10"
-        hostname: zookeeper
-        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-i386-ubuntu}/confluent/${CONFLUENT_VERSION:-5.3.1}:${CONTAINER_TAG:-v3.9.1}
+            ZOOKEEPER_SERVER_ID: ${KAFKA_ID:?}
+            ZOOKEEPER_CLIENTPORT: 2181
+            ZOOKEEPER_TICKTIME: 2000
+            ZOOKEEPER_INITLIMIT: 10
+            ZOOKEEPER_SYNCLIMIT: 5
+            ZOOKEEPER_SERVER.1: 10.1.3.6:2888:3888
+            ZOOKEEPER_SERVER.2: 10.1.3.10:2888:3888
+            ZOOKEEPER_SERVER.3: 0.0.0.0:2888:3888
+        hostname: zookeeper.s8.home
+        image: ${DOCKER_REGISTRY:-ubuntu-s2.home:5000/}${CONTAINER_OS:-alpine}/confluent/${CONFLUENT_VERSION:-5.4.1}:${CONTAINER_TAG:-3743c749e73ca65c6f2d94597f5954a592e489b025a49331ea7853dd1671ce57}
         logging:
             driver: json-file
             options:
-                max-size: "10m"
                 max-file: "3"
+                max-size: "10m"
+        networks:
+            - kafka-net
         ports:
-            - "1299:1299"
             - "2181:2181"
+            - "2888:2888"
+            - "3888:3888"
         restart: unless-stopped
         volumes:
-            - /media/500GB/zookeeper/data:/usr/local/kafka/data
-            - /media/500GB/zookeeper/logs:/usr/local/kafka/logs
-            - ./kafka-zookeeper/log:/var/log
+            - ./zookeeper/data:/usr/local/confluent/data
+            - ./zookeeper/logs:/usr/local/confluent/logs 
+            - ./zookeeper/log:/var/log
+networks:
+    kafka-net:
+        name: kafka-container-net

@@ -1,0 +1,28 @@
+completion_msg:
+    - "If this setup includes a web server, please open the following URL in your browser: http://$HOST_IP"
+
+container_os: alpine
+
+environment:
+    COMPOSE_HTTP_TIMEOUT: 120
+    CFG_USER_SECRETS: ~/.inf
+    KAFKA_ID: 3
+    KAFKAMGR_UID: 1000
+    KAFKA_BOOTSTRAP_SERVERS: 's3.ubuntu.home:9092,s4.ubuntu.home:9092,s8.ubuntu.home:9092'
+    LOCATION: home 
+    ZOOKEEPER_HOSTS: "$ZOOKEEPER_HOSTS" 
+    __SECRETS_FILE: ~/.inf/secret.properties
+
+#skip_wait:
+#    - blue
+
+thirdparty_versions:
+    KAFDROP_VERSION: 3.24.0             # https://hub.docker.com/r/obsidiandynamics/kafdrop/tags
+    KAFKAHQ_VERSION: 0.12.0             # https://hub.docker.com/r/tchiotludo/kafkahq/tags
+    ZOONAVIGATOR_VERSION: 0.8.0         # https://hub.docker.com/r/elkozmon/zoonavigator/tags
+
+versions:
+    repo: https://github.com/ballab1/versions
+    dir: ${WORKSPACE_DIR}/.versions
+    commit: bfab20a9c7e5c46bfb64c7618b1ca3ab489d5c00
+    branch: dev
