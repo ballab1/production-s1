@@ -6,8 +6,8 @@
 #
 #############################################################################
 
-declare -r config_dir="${CONFIG_DIR:?}/kafka"
-declare -r workspace_dir="${WORKSPACE_DIR:?}/kafka-broker"
+declare -r config_dir="${CONFIG_DIR:?}/broker"
+declare -r workspace_dir="${WORKSPACE_DIR:?}/broker"
 
 
 declare isIinitialized="$(basename "${BASH_SOURCE[0]}")"
@@ -16,7 +16,6 @@ if [ ! -f "$isIinitialized" ]; then
 
     # perform initialization 
     mkdir -p "$workspace_dir" ||: 
-    touch "$isIinitialized"
   
     declare -r bin_dir="${WORKSPACE_DIR}/bin"
     mkdir -p "$bin_dir" ||:
@@ -25,7 +24,10 @@ if [ ! -f "$isIinitialized" ]; then
         [ -e "$target" ] && continue
         cp "$f" "$target"
         chmod 755 "$target"
-    done < <(find "${config_dir}" -mindepth 1 -maxdepth 1 -type f ! -name '.*')
+    done < <(find "${CONFIG_DIR}/kafka" -mindepth 1 -maxdepth 1 -type f ! -name '.*')
+
+
+    touch "$isIinitialized"
 fi
 
 # perform common

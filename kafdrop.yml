@@ -1,0 +1,37 @@
+#
+# docker.io/obsidiandynamics/kafdrop
+#
+    kafdrop:
+        container_name: kafdrop
+        dns: 10.1.3.1
+        dns_search:
+            - ubuntu.home
+            - home
+        environment:
+            JVM_OPTS: "-Xms32M -Xmx64M"
+#            JMX_PORT:
+            KAFKA_BROKERCONNECT: $KAFKA_BOOTSTRAP_SERVERS
+#            KAFKA_PROPERTIES: $(cat kafka.properties | base64)
+#            KAFKA_TRUSTSTORE: $(cat kafka.truststore.jks | base64)  # optional
+#            KAFKA_KEYSTORE: $(cat kafka.keystore.jks | base64)      # optional
+        hostname: kafdrop.s4.home
+        image: ${DOCKER_REGISTRY:-ubuntu-s2.home:5000/}thirdparty/kafdrop:${KAFDROP_VERSION:-3.24.0}
+        logging:
+            driver: json-file
+            options:
+                max-file: "3"
+                max-size: "10m" 
+        networks:
+            - kafka-net
+        ports:
+            - "8998:9000"
+        restart: unless-stopped
+        volumes:
+            - ./kafdrop/log:/var/log
+
+networks:
+   kafka-net:
+       name: kafka-container-net
+
+ 
+ 

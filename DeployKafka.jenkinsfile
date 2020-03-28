@@ -13,7 +13,7 @@ pipeline {
   parameters {
     string(name: 'CONTAINER_TAG', defaultValue: 'latest', description: 'version of kafka containers to use')
     string(name: 'SLAVE', defaultValue: 'localhost', description: 'label of slave on which kafka should run')
-    string(name: 'TARGET_DIR', defaultValue: '/home/bobb/kafka-deploy', description: 'target directory for config files')
+    string(name: 'TARGET_DIR', defaultValue: '/home/cyc/kafka-deploy', description: 'target directory for config files')
   }
 
   stages {

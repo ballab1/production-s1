@@ -1,0 +1,48 @@
+    kafkamgr:
+        container_name: kafkamgr
+        dns: 10.1.3.1
+        dns_search:
+            - ubuntu.home
+            - home
+        environment:
+            APPLICATION_SECRET_FILE: /run/secrets/kafka.secret
+            BASE_ZK_PATH: /
+            CONSUMER_PROPERTIES_FILE: /usr/local/kafka-manager/conf/consumer.properties
+            DEBUG_TRACE: ${DEBUG_TRACE:-0}
+            KAFKA_MANAGER_AUTH_ENABLED: 'false'
+            KAFKA_MANAGER_LOGLEVEL: INFO
+#            KAFKA_MANAGER_PASSWORD_FILE: /run/secrets/kafka_manager.pwd
+#            KAFKA_MANAGER_USERNAME: ${CFG_USER:?}
+            KAFKA_MANAGER_USERNAME: admin
+            KM_HTTP_CONTEXT: /kafkamgr
+            ZK_HOSTS: 10.1.3.10:2181,10.1.3.6:2181
+        hostname: kafkamgr
+        image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-alpine}/kafka-manager/${KM_VERSION:-2.0.0.2}:${CONTAINER_TAG:-23c4a410ccec42aa7a344879ce91f84e71dff3838e3476b5c79418e327f4a763}
+        logging:
+            driver: json-file
+            options:
+                max-file: "3"
+                max-size: "10m"
+        networks:
+            - kafka-net
+        ports:
+            - "9000:9000"
+        restart: unless-stopped
+        secrets:
+            - kafka.secret
+#            - kafka_manager.pwd
+        volumes:
+            - ./kafka-manager/log:/usr/local/kafka-manager/home
+            - ./kafka-manager/log:/var/log
+
+networks:
+   kafka-net:
+       name: kafka-container-net
+
+
+secrets:
+   kafka.secret:
+     file: .secrets/secrets/kafkamgr.secret
+   kafka_manager.pwd:
+     file: .secrets/secrets/bobb.pwd
+
