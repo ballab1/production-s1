@@ -20,10 +20,10 @@ environment:
 thirdparty_versions:
     AKHQ_VERSION: 0.14.1                # https://hub.docker.com/r/tchiotludo/akhq/tags
     KAFDROP_VERSION: 3.27.0             # https://hub.docker.com/r/obsidiandynamics/kafdrop/tags
-    ZOONAVIGATOR_VERSION: 1.0.0         # https://hub.docker.com/r/elkozmon/zoonavigator/tags
+    ZOONAVIGATOR_VERSION: 1.0.1         # https://hub.docker.com/r/elkozmon/zoonavigator/tags
 
 versions:
     repo: https://github.com/ballab1/versions
     dir: ${WORKSPACE_DIR}/.versions
-    commit: 32a42993ff6701eaf7622793f10ea166ed27d731
+    commit: e84ae2b6fda62f7763ed827b787e2b30cedf4bce
     branch: dev
