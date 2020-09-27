@@ -1,6 +1,6 @@
     kafkamgr:
         container_name: kafkamgr
-        dns: 10.1.3.1
+        dns: 10.3.1.1
         dns_search:
             - ubuntu.home
             - home
@@ -15,7 +15,7 @@
 #            KAFKA_MANAGER_USERNAME: ${CFG_USER:?}
             KAFKA_MANAGER_USERNAME: admin
             KM_HTTP_CONTEXT: /kafkamgr
-            ZK_HOSTS: 10.1.3.10:2181,10.1.3.6:2181
+            ZK_HOSTS: 10.3.1.10:2181,10.1.3.6:2181
         hostname: kafkamgr
         image: ${DOCKER_REGISTRY:-ubuntu-s2:5000/}${CONTAINER_OS:-alpine}/kafka-manager/${KM_VERSION:-2.0.0.2}:${CONTAINER_TAG:-23c4a410ccec42aa7a344879ce91f84e71dff3838e3476b5c79418e327f4a763}
         logging:
