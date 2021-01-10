@@ -20,7 +20,7 @@ environment:
 thirdparty_versions:
     AKHQ_VERSION: 0.14.1                # https://hub.docker.com/r/tchiotludo/akhq/tags
     KAFDROP_VERSION: 3.27.0             # https://hub.docker.com/r/obsidiandynamics/kafdrop/tags
-    METRICBEAT_VERSION: 7.9.3
+    METRICBEAT_VERSION: 7.10.1
     ZOONAVIGATOR_VERSION: 1.0.1         # https://hub.docker.com/r/elkozmon/zoonavigator/tags
 
 versions:
@@ -28,3 +28,8 @@ versions:
     dir: ${WORKSPACE_DIR}/.versions
     commit: 42024a29dad4d1d22dde07a753162931b779d2db
     branch: dev
+
+default_args:
+    cmd: 'deploy.restart'
+    latest: 'HEAD'
+    container_tag: 'dev'
