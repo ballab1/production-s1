@@ -36,7 +36,7 @@ services:
             KAFKA_ZOOKEEPER_CONNECT: ${ZOOKEEPER_HOSTS:?}
             ZOOKEEPER_TIMEOUT: 6000
         hostname: broker.s8.home
-        image: ${DOCKER_REGISTRY:-ubuntu-s2.home:5000/}${CONTAINER_OS:-alpine}/confluent/${CONFLUENT_VERSION:-6.0.0}:${CONTAINER_TAG:-2a0b670632582baf5e28e4f9adb49855fce786213a231cad2424f0f7c435994b}
+        image: ${DOCKER_REGISTRY:-ubuntu-s2.home:5000/}${CONTAINER_OS:-alpine}/confluent/${CONFLUENT_VERSION:-6.1.0}:${CONTAINER_TAG:-2a0b670632582baf5e28e4f9adb49855fce786213a231cad2424f0f7c435994b}
         logging:
             driver: json-file
             options:
@@ -63,3 +63,68 @@ services:
 #            - ubuntu.home
 #            - home
 #        hostname: metricbeat
+#        image: ${DOCKER_REGISTRY:-ubuntu-s2.home:5000/}thirdparty/metricbeat:${METRICBEAT_VERSION:-7.9.3}
+#        labels:
+#            co.elastic.metrics/hosts: '$${data.host}:$${data.port}'
+#            co.elastic.metrics/metricsets: status
+#            co.elastic.metrics/module: metricbeat
+#            co.elastic.metrics/period: 10s
+#        logging:
+#            driver: json-file
+#            options:
+#                max-file: "3"
+#                max-size: "10m"
+#        networks:
+#            - kafka-net
+#        restart: unless-stopped
+#        user: root
+#        volumes:
+#            - ./metricbeat/metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro
+##            - ./metricbeat/metricbeat.yml:/etc/metricbeat/metricbeat.yml:ro
+#            - ./metricbeat/modules.d:/usr/share/metricbeat/modules.d:ro
+#            - ./metricbeat/log:/var/log
+#            - /var/run/docker.sock:/var/run/docker.sock
+#            - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+#            - /proc:/hostfs/proc:ro
+#            - /:/hostfs:ro
+#
+#
+    zookeeper:
+        command: confluent zookeeper
+        container_name: zookeeper
+        dns: 10.3.1.1
+        dns_search:
+            - ubuntu.home
+            - home
+        environment:
+            DEBUG_TRACE: ${DEBUG_TRACE:-0}
+            JAVA_HOME: /usr/lib/jvm/java-11-openjdk
+            ZOOKEEPER_SERVER_ID: ${KAFKA_ID:?}
+            ZOOKEEPER_CLIENTPORT: 2181
+            ZOOKEEPER_TICKTIME: 2000
+            ZOOKEEPER_INITLIMIT: 10
+            ZOOKEEPER_SYNCLIMIT: 5
+            ZOOKEEPER_SERVER.1: s3.ubuntu.home:2888:3888
+            ZOOKEEPER_SERVER.2: s4.ubuntu.home:2888:3888
+            ZOOKEEPER_SERVER.3: 0.0.0.0:2888:3888
+        hostname: zookeeper.s8.home
+        image: ${DOCKER_REGISTRY:-ubuntu-s2.home:5000/}${CONTAINER_OS:-alpine}/confluent/${CONFLUENT_VERSION:-6.1.0}:${CONTAINER_TAG:-2a0b670632582baf5e28e4f9adb49855fce786213a231cad2424f0f7c435994b}
+        logging:
+            driver: json-file
+            options:
+                max-file: "3"
+                max-size: "10m"
+        networks:
+            - kafka-net
+        ports:
+            - "2181:2181"
+            - "2888:2888"
+            - "3888:3888"
+        restart: unless-stopped
+        volumes:
+            - ./zookeeper/data:/usr/local/confluent/data
+            - ./zookeeper/logs:/usr/local/confluent/logs 
+            - ./zookeeper/log:/var/log
+networks:
+    kafka-net:
+        name: kafka-container-net
