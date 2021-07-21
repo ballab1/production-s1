@@ -36,7 +36,7 @@ services:
             KAFKA_ZOOKEEPER_CONNECT: ${ZOOKEEPER_HOSTS:?}
             ZOOKEEPER_TIMEOUT: 6000
         hostname: broker.s8.home
-        image: ${DOCKER_REGISTRY:-s2.ubuntu.home:5000/}${CONTAINER_OS:-alpine}/confluent/${CONFLUENT_VERSION:-6.2.0}:${CONTAINER_TAG:-f70ff3d8aa607484e3bbf33760cf8be4dbfd0ee4d8589b0b1b89e865b799d147}
+        image: ${DOCKER_REGISTRY:-s2.ubuntu.home:5000/}${CONTAINER_OS:-alpine}/confluent/${CONFLUENT_VERSION:-6.2.0}:${CONTAINER_TAG:-f15e087910c8cc93504a2a8cc526479da3840f4a44090286299ef94a6db80008}
         logging:
             driver: json-file
             options:
@@ -108,7 +108,7 @@ services:
             ZOOKEEPER_SERVER.2: s4.ubuntu.home:2888:3888
             ZOOKEEPER_SERVER.3: 0.0.0.0:2888:3888
         hostname: zookeeper.s8.home
-        image: ${DOCKER_REGISTRY:-s2.ubuntu.home:5000/}${CONTAINER_OS:-alpine}/confluent/${CONFLUENT_VERSION:-6.2.0}:${CONTAINER_TAG:-f70ff3d8aa607484e3bbf33760cf8be4dbfd0ee4d8589b0b1b89e865b799d147}
+        image: ${DOCKER_REGISTRY:-s2.ubuntu.home:5000/}${CONTAINER_OS:-alpine}/confluent/${CONFLUENT_VERSION:-6.2.0}:${CONTAINER_TAG:-f15e087910c8cc93504a2a8cc526479da3840f4a44090286299ef94a6db80008}
         logging:
             driver: json-file
             options:
